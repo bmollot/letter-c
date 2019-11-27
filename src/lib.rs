@@ -1,5 +1,4 @@
-const megalovania_raw: &'static str =
-"5|--d---------------d-------|
+const megalovania_raw: &'static str = "5|--d---------------d-------|
 4|dd--a--G-g-f-dfgcc--a--G-g|
 
 5|--------d---------------d-|
@@ -106,8 +105,93 @@ const megalovania_raw: &'static str =
 4|-dfgdd--a--G-g-f-dfgCC--a-|
 
 5|------------d-------------|
-4|-G-g-f-dfgcc--a--G-g-f-dfg|"
+4|-G-g-f-dfgcc--a--G-g-f-dfg|";
 
-fn make_qmk_note_sequence_from_letter_notes(letter_notes: &str) -> String {
+enum Pitch {
+    Rest,
+    A,
+    AS,
+    B,
+    BS,
+    C,
+    CS,
+    D,
+    DS,
+    E,
+    ES,
+    F,
+    FS,
+    G,
+    GS,
+}
+
+enum NoteDuration {
+    Quarter,
+    QuarterDot,
+    Half,
+    HalfDot,
+    Whole,
+    WholeDot,
+    Breve,
+    BreveDot,
+}
+
+struct Note {
+    pitch: Pitch,
+    octave: u8,
+    duration: NoteDuration,
+}
+
+enum ParserState {
+    BeginningOfLine,
+    FirstBar,
+    Body,
+    SecondBar,
+    EndOfLine,
+}
+
+pub fn make_qmk_note_sequence_from_letter_notes<I>(letter_notes: I) -> String
+where
+    I: IntoIterator<Item = char>,
+{
+    let letter_notes = letter_notes.into_iter();
+
+    let mut pitch_seq_by_octave: [Vec<Pitch>; 9] = Default::default();
+
+    let mut state = ParserState::BeginningOfLine;
+    let mut cur_octave = 0u8;
+
+    for l in letter_notes {
+        match state {
+            ParserState::BeginningOfLine => {
+                cur_octave = l.to_digit(10).unwrap() as u8;
+                state = ParserState::FirstBar;
+            }
+            ParserState::FirstBar => state = ParserState::Body,
+            ParserState::Body => match l {
+                '|' => state = ParserState::EndOfLine,
+                l => pitch_seq_by_octave[cur_octave as usize].push(match l {
+                    'a' => Pitch::A,
+                    'A' => Pitch::AS,
+                    'b' => Pitch::B,
+                    'B' => Pitch::BS,
+                    'c' => Pitch::C,
+                    'C' => Pitch::CS,
+                    'd' => Pitch::D,
+                    'D' => Pitch::DS,
+                    'e' => Pitch::E,
+                    'E' => Pitch::ES,
+                    'f' => Pitch::F,
+                    'F' => Pitch::FS,
+                    'g' => Pitch::G,
+                    'G' => Pitch::GS,
+                    _ => Pitch::Rest,
+                }),
+            },
+            ParserState::SecondBar => state = ParserState::EndOfLine,
+            ParserState::EndOfLine => state = ParserState::BeginningOfLine,
+        }
+    }
+
     "".into()
 }
