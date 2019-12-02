@@ -154,7 +154,9 @@ where
                     cur_section_length = 0;
                 }
                 _ => {
+                    cur_section_length = 0;
                     cur_octave = l.to_digit(10).unwrap() as u8;
+                    is_octave_in_cur_section[cur_octave as usize] = true;
                     state = ParserState::FirstBar;
                 }
             },
@@ -162,7 +164,6 @@ where
             ParserState::Body => match l {
                 '|' => state = ParserState::EndOfLine,
                 _ => {
-                    cur_section_length += 1;
                     pitch_seq_by_octave[cur_octave as usize].push(match l {
                         'a' => Pitch::A,
                         'A' => Pitch::AS,
@@ -178,8 +179,10 @@ where
                         'F' => Pitch::FS,
                         'g' => Pitch::G,
                         'G' => Pitch::GS,
-                        _ => Pitch::Rest,
-                    })
+                        '-' => Pitch::Rest,
+                        _ => panic!("Invalid body character"),
+                    });
+                    cur_section_length += 1;
                 }
             },
             ParserState::EndOfLine => state = ParserState::BeginningOfLine,
@@ -187,6 +190,10 @@ where
     }
 
     let whole_sequence_length = pitch_seq_by_octave[0].len();
+
+    for octave in 0..NUMBER_OF_OCTAVES {
+        println!("{}", pitch_seq_by_octave[octave].len());
+    }
 
     let mut zipped_pitch_sequence: Vec<(u8, Pitch)> = vec![(0, Pitch::Rest); whole_sequence_length];
     for i in 0..whole_sequence_length {
@@ -198,6 +205,8 @@ where
             }
         }
     }
+
+    println!("{:?}", zipped_pitch_sequence);
 
     let ((octave, pitch), rest) = zipped_pitch_sequence.split_first().unwrap();
     let mut cur_octave = *octave;
